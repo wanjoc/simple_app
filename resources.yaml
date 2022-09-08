@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template is used to create a CI/CD Pipeline that deploys a Flask Web app.
+
+# Parameters to be used through out the template
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+  AppName: 
+    Type: String
+    Default: simple_app
+  GithubUserName:
+    Type: String
+    Default: wanjoc
+  GithubRepo:
+    Type: String
+    Default: https://github.com/wanjoc/simple_app.git
+  GithubBranch:
+    Type: String
+    Default: main
+  GithubOAuthToken:
+    Type: String
+    Default: <git token>
+
+# Create role for CodeBuild
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Service:
+                - "codebuild.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: /service-role/
+      Policies:
+        - PolicyName: CodeBuildAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Sid: "CodeBuildAccessPolicy",
+                Effect: Allow
+                Action: 
+                  - "codebuild:*"
+                Resource: "*"
+              - 
+                Sid: "CodeBuildRolePolicy",
+                Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:GetBucketVersioning"
+                  - "s3:PutObject"
+                  - "s3:PutObjectAcl"
+                  - "s3:PutObjectVersionAcl"
+                Resource: 
+                  - !GetAtt DeployBucket.Arn
+                  - !Join ['', [!GetAtt DeployBucket.Arn, "/*"]]
+              -
+                Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "cloudfront:CreateInvalidation"
+                Resource:
+                  - "*"
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref AppName, !Ref 'AWS::AccountId', 'BuildRole'
+
+
+# Add Metadata section here.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'Amazon EC2 Configuration'
+        Parameters:
+          - InstanceType
+    ParameterLabels:
+      InstanceType:
+        default: 'Type of EC2 Instance'
+
+
+# Add Parameters section here.
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+    Description: 'Enter t2.micro or t2.small. Default is t2.micro.'
+
+
+# Add Resources section here.
+Resources:
+  WebServerInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: <replace with AMI ID ami-xxxxx>
